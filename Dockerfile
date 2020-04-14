@@ -129,20 +129,30 @@ ENV PATH $GEM_HOME/bin:$PATH
 RUN mkdir -p "$GEM_HOME" && chmod 777 "$GEM_HOME"
 
 
+
 ############
 ## set up 
-RUN apk add --no-cache logrotate
-COPY ./assets/logrotate/logrotate.conf /etc/logrotate.d
+RUN apk add --no-cache build-base apache2-dev logrotate git
 
-COPY ./assets/httpd/httpd.conf /usr/local/apache2/conf/
-COPY ./assets/httpd/server.key /usr/local/apache2/conf/
-COPY ./assets/httpd/server.crt /usr/local/apache2/conf/
-COPY ./assets/httpd/sslpassword.sh /usr/local/apache2/conf/
-COPY ./assets/httpd/httpd-ssl.conf /usr/local/apache2/conf/extra/
+#####
+## proxy-protocol
+WORKDIR /work/proxy-protocol/
+RUN git clone https://gitlab.cern.ch/cloud-infrastructure/mod-proxy-protocol.git ./ && make 
 
-COPY ./assets/cron/config /var/spool/cron/crontabs/root
-COPY ./assets/cron/test.rb /bin/
+WORKDIR /work/
+COPY ./app/logrotate/logrotate.conf /etc/logrotate.d
 
-COPY ./assets/entrypoint.sh /bin/
+############
+## ruby setup
+COPY ./Gemfile ./
+RUN bundle install
 
-ENTRYPOINT ["/bin/entrypoint.sh"]
+COPY ./app/ ./
+
+############
+## apache httpd setup
+COPY ./app/httpd/ /usr/local/apache2/conf/
+
+ENV APP_ENV=production
+WORKDIR /work/frontend/
+ENTRYPOINT ["/work/entrypoint.sh"]

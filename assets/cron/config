@@ -1,1 +1,0 @@
-* * * * * ruby /bin/test.rb >> /usr/local/apache2/logs/cron.log 2>&1
